@@ -8,10 +8,10 @@ namespace Runner
 {
     public class Game : GameWindow
     {
-        private VertexBuffer vertexBuffer;
-        private IndexBuffer indexBuffer;
-        private VertexArray vertexArray;
-        private ShaderProgram shaderProgram;
+        private VertexBuffer? vertexBuffer;
+        private IndexBuffer? indexBuffer;
+        private VertexArray? vertexArray;
+        private ShaderProgram? shaderProgram;
 
         private int indexCount;
 
@@ -53,7 +53,6 @@ namespace Runner
 
             int windowWidth = ClientSize.X;
             int windowHeight = ClientSize.Y;
-
 
             VertexPositionColor[] verticies = new VertexPositionColor[boxCount * 4];
 
@@ -116,8 +115,6 @@ namespace Runner
             vertexBuffer?.Dispose();
             indexBuffer?.Dispose();
 
-
-
             base.OnUnload();
         }
 
@@ -135,7 +132,7 @@ namespace Runner
                 deltaColorFactor *= -1f;
             }
 
-            shaderProgram.SetUniform("ColorFactor", colorFactor);
+            shaderProgram?.SetUniform("ColorFactor", colorFactor);
 
             base.OnUpdateFrame(args);
         }
@@ -143,17 +140,22 @@ namespace Runner
         protected override void OnRenderFrame(FrameEventArgs args)
         {
             GL.Clear(ClearBufferMask.ColorBufferBit);
+            
+            if (shaderProgram is null || vertexArray is null || indexBuffer is null)
+            {
+                throw new ArgumentNullException("ShaderProgram, VertexArray or IndexBuffer is null");
+            }
 
             GL.UseProgram(shaderProgram.ShaderProgramHandle);
             GL.BindVertexArray(vertexArray.VertexArrayHandle);
-            GL.BindBuffer(indexBuffer.BufferTarget, indexBuffer.IndexBufferHandle);
+            GL.BindBuffer(indexBuffer.BufferTarget, indexBuffer.Handle);
 
             GL.DrawElements(PrimitiveType.Triangles, indexCount, DrawElementsType.UnsignedInt, 0);
             this.Context.SwapBuffers();
             base.OnRenderFrame(args);
         }
 
-        private static Color4 GetRandomColor4()
+        private static Color4 GetRandomColor4(float alpha = 1f)
         {
 
             Random rand = new Random();
@@ -162,7 +164,7 @@ namespace Runner
             float g = (float)rand.NextDouble();
             float b = (float)rand.NextDouble();
 
-            return new Color4(r, g, b, 1f);
+            return new Color4(r, g, b, alpha);
         }
     }
 }

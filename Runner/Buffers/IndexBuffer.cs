@@ -2,72 +2,15 @@
 
 namespace Runner.Buffers
 {
-    public sealed class IndexBuffer : IDisposable
+    public sealed class IndexBuffer : AbstractBuffer
     {
-        public readonly BufferTarget BufferTarget = BufferTarget.ElementArrayBuffer;
+        public override BufferTarget BufferTarget { get; init; } = BufferTarget.ElementArrayBuffer;        
+        public override int MaxBufferCount { get; init; } = 250_000;
 
-        public static readonly int MinIndexCount = 1;
-        public static readonly int MaxIndexCount = 250_000;
-        
-        private bool disposed;
 
-        public readonly int IndexBufferHandle;
-        public readonly int IndexCount;
-        public readonly bool IsStatic;
-
-        public IndexBuffer(int indexCount, bool isStatic = true)
+        public IndexBuffer(int indexCount, bool isStatic = true) : base(indexCount, sizeof(int), isStatic)
         {
-            if (indexCount < IndexBuffer.MinIndexCount || indexCount > IndexBuffer.MaxIndexCount)
-            {
-                throw new ArgumentOutOfRangeException(nameof(indexCount));
-            }
-            disposed = false;
-            IndexCount = indexCount;
-            IsStatic = isStatic;
-
-            BufferUsageHint hint = IsStatic ? BufferUsageHint.StaticDraw : BufferUsageHint.StreamDraw;
-
-
-            IndexBufferHandle = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget, IndexBufferHandle);
-            GL.BufferData(BufferTarget, IndexCount * sizeof(int), IntPtr.Zero, hint);
-            GL.BindBuffer(BufferTarget, 0);
-
         }
 
-        ~IndexBuffer()
-        {
-            Dispose();
-        }
-
-        public void Dispose()
-        {
-            if (disposed) return;
-
-            GL.BindBuffer(BufferTarget, 0);
-            GL.DeleteBuffer(IndexBufferHandle);
-
-            disposed = true;
-
-            GC.SuppressFinalize(this);
-        }
-
-
-        public void SetData(int[] data, int count)
-        {
-
-            if (data is null)
-                throw new ArgumentNullException(nameof(data));
-            if (data.Length <= 0)
-                throw new ArgumentOutOfRangeException(nameof(data));
-            if (count <= 0 ||
-                count > IndexCount ||
-                count > data.Length)
-                throw new ArgumentOutOfRangeException(nameof(count));
-
-            GL.BindBuffer(BufferTarget, IndexBufferHandle);
-            GL.BufferSubData(BufferTarget, IntPtr.Zero, count * sizeof(int), data);
-            GL.BindBuffer(BufferTarget, 0);
-        }
     }
 }

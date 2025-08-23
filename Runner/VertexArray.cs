@@ -31,7 +31,7 @@ namespace Runner
             VertexArrayHandle = GL.GenVertexArray();
             GL.BindVertexArray(VertexArrayHandle);
 
-            GL.BindBuffer(BufferTarget, vertexBuffer.VertextBufferHandle);
+            GL.BindBuffer(BufferTarget, vertexBuffer.Handle);
 
             VertexAttribute[] attributes = VertexBuffer.VertexInfo.VertexAttributes;
 
