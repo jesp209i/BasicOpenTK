@@ -5,35 +5,33 @@ namespace Runner.Buffers
     public abstract class AbstractBuffer : IDisposable
     {
         public virtual BufferTarget BufferTarget { get; init; }
-
-        public readonly int MinBufferCount = 1;
-        public virtual int MaxBufferCount { get; init; }
-
         public int Handle { get; }
-        public int BufferCount { get; }
-        public int SizeInfo { get; }
         public bool IsStatic { get; }
 
-        protected bool disposed;
+        public int BufferCount { get;  }
+        private int _sizeInfo;
+        private bool _disposed;
 
+        protected readonly int _minBufferCount = 1;
+        protected virtual int MaxBufferCount { get; init; }
 
         protected AbstractBuffer(int bufferCount, int sizeInfo, bool isStatic = true)
         {
-            if (bufferCount < MinBufferCount || bufferCount > MaxBufferCount)
+            if (bufferCount < _minBufferCount || bufferCount > MaxBufferCount)
             {
                 throw new ArgumentOutOfRangeException(nameof(bufferCount));
             }
 
             BufferCount = bufferCount;
-            disposed = false;
-            SizeInfo = sizeInfo;
+            _disposed = false;
+            _sizeInfo = sizeInfo;
             IsStatic = isStatic;
 
             var bufferUsageHint = IsStatic ? BufferUsageHint.StaticDraw : BufferUsageHint.StreamDraw;
 
             Handle = GL.GenBuffer();
             GL.BindBuffer(BufferTarget, Handle);
-            GL.BufferData(BufferTarget, BufferCount * SizeInfo, IntPtr.Zero, bufferUsageHint);
+            GL.BufferData(BufferTarget, BufferCount * _sizeInfo, IntPtr.Zero, bufferUsageHint);
             GL.BindBuffer(BufferTarget, 0);
         }
 
@@ -44,12 +42,12 @@ namespace Runner.Buffers
 
         public void Dispose()
         {
-            if (disposed) return;
+            if (_disposed) return;
 
             GL.BindBuffer(BufferTarget, 0);
             GL.DeleteBuffer(Handle);
 
-            disposed = true;
+            _disposed = true;
 
             GC.SuppressFinalize(this);
         }
@@ -67,7 +65,7 @@ namespace Runner.Buffers
                 throw new ArgumentOutOfRangeException(nameof(count));
 
             GL.BindBuffer(BufferTarget, Handle);
-            GL.BufferSubData(BufferTarget, IntPtr.Zero, count * SizeInfo, data);
+            GL.BufferSubData(BufferTarget, IntPtr.Zero, count * _sizeInfo, data);
             GL.BindBuffer(BufferTarget, 0);
         }
     }
