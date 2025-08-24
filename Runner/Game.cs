@@ -1,8 +1,11 @@
-﻿using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
-using OpenTK.Graphics.OpenGL;
+﻿using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
+using OpenTK.Windowing.Desktop;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using Runner.Buffers;
+using Runner.Common;
+
 
 namespace Runner
 {
@@ -11,27 +14,28 @@ namespace Runner
         private VertexBuffer? vertexBuffer;
         private IndexBuffer? indexBuffer;
         private VertexArray? vertexArray;
-        private ShaderProgram? shaderProgram;
+        private Shader? shaderProgram;
+
+        private Camera _camera;
 
         private float colorFactor = 1f;
         private float deltaColorFactor = 1f / 8024f;
         private readonly Random _random;
+        private string vertexShaderPath;
+        private string fragmentShaderPath;
 
-        public Game(int width = 1280, int height = 768, string title = "Hello Hest") : base(GameWindowSettings.Default, 
-            new NativeWindowSettings
-            {
-                Title = title,
-                ClientSize = new Vector2i(width, height),
-                WindowBorder = WindowBorder.Resizable,
-                StartVisible = false,
-                StartFocused = true,
-                API = ContextAPI.OpenGL,
-                Profile = ContextProfile.Core,
-                APIVersion = new Version(3,3)
-            })
+        float speed = 1.5f;
+
+        Vector3 position = new Vector3(0.0f, 0.0f, 3.0f);
+        Vector3 front = new Vector3(0.0f, 0.0f, -1.0f);
+        Vector3 up = new Vector3(0.0f, 1.0f, 0.0f);
+        public Game(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings, GameOptions options) : base(
+            gameWindowSettings, nativeWindowSettings)
         {
             this.CenterWindow();
             _random = new Random();
+            vertexShaderPath = options.VertexShaderPath;
+            fragmentShaderPath = options.FragmentShaderPath;
         }
 
         protected override void OnResize(ResizeEventArgs e)
@@ -43,6 +47,8 @@ namespace Runner
 
         protected override void OnLoad()
         {
+            base.OnLoad();
+
             IsVisible = true;
             GL.ClearColor(GetRandomColor4());
 
@@ -63,7 +69,9 @@ namespace Runner
 
             shaderProgram = CreateAndConfigureShaderProgram(viewport);
 
-            base.OnLoad();
+            _camera = new Camera(Vector3.UnitZ * 3, Size.X / (float)Size.Y);
+
+
         }
 
         protected override void OnUnload()
@@ -77,6 +85,13 @@ namespace Runner
 
         protected override void OnUpdateFrame(FrameEventArgs args)
         {
+            if (!IsFocused) // check to see if the window is focused
+            {
+                return;
+            }
+
+            KeyboardState input = KeyboardState;
+
             colorFactor += deltaColorFactor;
             if (colorFactor >= 1f)
             {
@@ -92,24 +107,67 @@ namespace Runner
             shaderProgram?.SetUniform("ColorFactor", colorFactor);
 
             base.OnUpdateFrame(args);
+
+            if (KeyboardState.IsKeyDown(Keys.Escape))
+            {
+                Console.WriteLine("Escape");
+                Close();
+            }
+            if (input.IsKeyDown(Keys.W))
+            {
+                Console.WriteLine("W");
+                position += front * speed; //Forward 
+            }
+
+            if (input.IsKeyDown(Keys.S))
+            {
+                Console.WriteLine("S");
+                position -= front * speed; //Backwards
+            }
+
+            if (input.IsKeyDown(Keys.A))
+            {
+                Console.WriteLine("A");
+                position -= Vector3.Normalize(Vector3.Cross(front, up)) * speed; //Left
+            }
+
+            if (input.IsKeyDown(Keys.D))
+            {
+                Console.WriteLine("D");
+                position += Vector3.Normalize(Vector3.Cross(front, up)) * speed; //Right
+            }
+
+            if (input.IsKeyDown(Keys.Space))
+            {
+                Console.WriteLine("Space");
+                position += up * speed; //Up 
+            }
+
+            if (input.IsKeyDown(Keys.LeftShift))
+            {
+                Console.WriteLine("LeftShift");
+                position -= up * speed; //Down
+            }
+
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-            GL.Clear(ClearBufferMask.ColorBufferBit);
+            base.OnRenderFrame(args);
+
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             
             if (shaderProgram is null || vertexArray is null || indexBuffer is null)
             {
                 throw new ArgumentNullException("ShaderProgram, VertexArray or IndexBuffer is null");
             }
 
-            GL.UseProgram(shaderProgram.ShaderProgramHandle);
+            shaderProgram.Use();
             GL.BindVertexArray(vertexArray.VertexArrayHandle);
             GL.BindBuffer(indexBuffer.BufferTarget, indexBuffer.Handle);
 
             GL.DrawElements(PrimitiveType.Triangles, indexBuffer.BufferCount, DrawElementsType.UnsignedInt, 0);
             Context.SwapBuffers();
-            base.OnRenderFrame(args);
         }
 
         private static Color4 GetRandomColor4(float alpha = 1f)
@@ -170,12 +228,10 @@ namespace Runner
             return vertexBuffer;
         }
 
-        private ShaderProgram CreateAndConfigureShaderProgram(int[] viewport)
+        private Shader CreateAndConfigureShaderProgram(int[] viewport)
         {
-            string vertexShaderCode = File.ReadAllText("ShaderPrograms/box-vertex-shader.vert");
-            string pixelShaderCode = File.ReadAllText("ShaderPrograms/box-color-shader.frag");
 
-            var shaderProgram = new ShaderProgram(vertexShaderCode, pixelShaderCode);
+            var shaderProgram = new Shader(vertexShaderPath, fragmentShaderPath);
 
             shaderProgram.SetUniform("ViewportSize", (float)viewport[2], (float)viewport[3]);
             shaderProgram.SetUniform("ColorFactor", colorFactor);

@@ -12,10 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="ShaderPrograms\box-color-shader.frag">
+    <None Update="Shaders\fragment-shader.frag">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="ShaderPrograms\box-vertex-shader.vert">
+    <None Update="Shaders\vertex-shader.vert">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
